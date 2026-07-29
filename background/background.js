@@ -1,5 +1,6 @@
 import { hasIpAddress, isExcessivelyLong, hasExcessiveSubdomains } from '../utils/urlAnalyzer.js';
 import { checkHomographAttack } from '../utils/levenshtein.js';
+import { analyzeHeaders } from '../utils/headers.js';
 
 const MOCK_TRUSTED_DOMAINS = [
   'google.com',
@@ -74,12 +75,75 @@ chrome.webNavigation.onCommitted.addListener((details) => {
         [`tab_${tabId}`]: tabData
       });
 
-      console.log(`WebGuardian: Tab ${tabId} risk analysis complete.`, tabData);
+      console.log(`WebGuardian: Tab ${tabId} URL risk analysis complete.`, tabData);
     } catch (error) {
       console.error('WebGuardian: Error analyzing URL in background:', error);
     }
   }
 });
+
+// Listen for HTTP response headers targeting main_frame requests
+chrome.webRequest.onHeadersReceived.addListener(
+  (details) => {
+    // Only process main_frame requests for active tabs
+    if (details.tabId === -1) return;
+
+    try {
+      const headerAnalysis = analyzeHeaders(details.responseHeaders);
+      const headerPenalty = headerAnalysis.riskScore;
+
+      const storageKey = `tab_${details.tabId}`;
+      chrome.storage.local.get([storageKey], (result) => {
+        const currentData = result[storageKey] || {
+          url: details.url,
+          riskScore: 0,
+          anomalies: [],
+          updatedAt: Date.now()
+        };
+
+        const newRiskScore = Math.min(currentData.riskScore + headerPenalty, 100);
+
+        // Add missing security header anomalies
+        const newAnomalies = [...currentData.anomalies];
+        if (!headerAnalysis.hasCSP && !newAnomalies.includes('MISSING_CSP')) {
+          newAnomalies.push('MISSING_CSP');
+        }
+        if (!headerAnalysis.hasHSTS && !newAnomalies.includes('MISSING_HSTS')) {
+          newAnomalies.push('MISSING_HSTS');
+        }
+        if (!headerAnalysis.hasXFrame && !newAnomalies.includes('MISSING_XFRAME')) {
+          newAnomalies.push('MISSING_XFRAME');
+        }
+
+        const updatedData = {
+          ...currentData,
+          riskScore: newRiskScore,
+          anomalies: newAnomalies,
+          updatedAt: Date.now()
+        };
+
+        chrome.storage.local.set({ [storageKey]: updatedData }, () => {
+          console.log(`WebGuardian: Tab ${details.tabId} headers analysis complete.`, updatedData);
+          
+          // Warn the user immediately if risk score exceeds 80
+          if (newRiskScore > 80) {
+            chrome.notifications.create(`risk_warning_${details.tabId}`, {
+              type: 'basic',
+              iconUrl: '/popup/logo.png',
+              title: '⚠️ High Security Risk Warning',
+              message: `The website you visited (${new URL(details.url).hostname}) has an extremely high risk score of ${newRiskScore}%. Proceed with extreme caution!`,
+              priority: 2
+            });
+          }
+        });
+      });
+    } catch (error) {
+      console.error('WebGuardian: Error analyzing response headers:', error);
+    }
+  },
+  { urls: ['<all_urls>'], types: ['main_frame'] },
+  ['responseHeaders']
+);
 
 // Clean up stored risk state when tab is closed
 chrome.tabs.onRemoved.addListener((tabId) => {
