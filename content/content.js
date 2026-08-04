@@ -19,27 +19,31 @@ function runLoginScan(){
   return { penaltyScore: 0, flaggedForms: [] };
 }
 
-function runTrackerScan(){
-  console.log('Running placeholder tracker scan...');
-  // Placeholder logic
-  return { penaltyScore: 0 };
+async function runTrackerScan(){
+  if (window.trackerDetector) {
+    return await window.trackerDetector.scan();
+  }
+  console.warn('WebGuardian: trackerDetector not loaded.');
+  return { penaltyScore: 0, detectedTrackers: [] };
 }
 
 async function initScans(){
   try {
     const phishingResult = await runPhishingScan();
     const loginResult = runLoginScan();
-    const trackerResult = runTrackerScan();
+    const trackerResult = await runTrackerScan();
 
-    const totalContentPenalty = phishingResult.penaltyScore + loginResult.penaltyScore + (trackerResult.penaltyScore || 0);
+    const totalContentPenalty = phishingResult.penaltyScore + loginResult.penaltyScore + trackerResult.penaltyScore;
 
     if (totalContentPenalty !== lastReportedScore) {
       lastReportedScore = totalContentPenalty;
       reportToBackground('contentScanResult', {
         phishingScore: phishingResult.penaltyScore,
         loginPenalty: loginResult.penaltyScore,
+        trackerScore: trackerResult.penaltyScore,
         matchedKeywords: phishingResult.matchedKeywords,
-        flaggedForms: loginResult.flaggedForms
+        flaggedForms: loginResult.flaggedForms,
+        detectedTrackers: trackerResult.detectedTrackers
       });
     }
   } catch (error) {

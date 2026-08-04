@@ -156,7 +156,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const tabId = sender.tab?.id;
     if (!tabId) return;
 
-    const { phishingScore, loginPenalty, matchedKeywords, flaggedForms } = request.data;
+    const { phishingScore, loginPenalty, trackerScore, matchedKeywords, flaggedForms, detectedTrackers } = request.data;
     const storageKey = `tab_${tabId}`;
 
     chrome.storage.local.get([storageKey], (result) => {
@@ -192,9 +192,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       }
 
+      const activeTrackerScore = trackerScore || 0;
+      if (activeTrackerScore > 0) {
+        if (!newAnomalies.includes('TRACKERS_DETECTED')) {
+          newAnomalies.push('TRACKERS_DETECTED');
+        }
+      } else {
+        const index = newAnomalies.indexOf('TRACKERS_DETECTED');
+        if (index > -1) {
+          newAnomalies.splice(index, 1);
+        }
+      }
+
       // Track the previous content risk contribution to update the overall score properly without double-counting
       const prevContentRisk = currentData.contentRiskScore || 0;
-      const newContentRisk = phishingScore + loginPenalty;
+      const newContentRisk = phishingScore + loginPenalty + activeTrackerScore;
 
       let newRiskScore = currentData.riskScore - prevContentRisk + newContentRisk;
       newRiskScore = Math.max(0, Math.min(newRiskScore, 100));
@@ -204,6 +216,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         riskScore: newRiskScore,
         contentRiskScore: newContentRisk,
         anomalies: newAnomalies,
+        detectedTrackers: detectedTrackers || [],
         updatedAt: Date.now()
       };
 

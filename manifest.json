@@ -26,6 +26,8 @@
       "js": [
         "content/phishing.js",
         "content/loginDetector.js",
+        "content/trackerDetector.js",
+        "content/passwordChecker.js",
         "content/content.js"
       ],
       "run_at": "document_start"
@@ -34,7 +36,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "rules/suspiciousKeywords.json"
+        "rules/suspiciousKeywords.json",
+        "rules/trackerList.json"
       ],
       "matches": [
         "<all_urls>"
