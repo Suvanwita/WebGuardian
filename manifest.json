@@ -24,9 +24,21 @@
         "<all_urls>"
       ],
       "js": [
+        "content/phishing.js",
+        "content/loginDetector.js",
         "content/content.js"
       ],
       "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "rules/suspiciousKeywords.json"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "action": {

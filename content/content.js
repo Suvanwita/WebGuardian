@@ -1,25 +1,50 @@
 // WebGuardian Content Script
 console.log('WebGuardian content script initialized.');
 
-function runPhishingScan(){
-console.log('Running placeholder phishing scan...');
-// Placeholder logic
+let lastReportedScore = -1;
+
+async function runPhishingScan(){
+  if (window.phishingScanner) {
+    return await window.phishingScanner.scan();
+  }
+  console.warn('WebGuardian: phishingScanner not loaded.');
+  return { penaltyScore: 0, matchedKeywords: [] };
 }
 
 function runLoginScan(){
-console.log('Running placeholder login scan...');
-// Placeholder logic
+  if (window.loginDetector) {
+    return window.loginDetector.scan();
+  }
+  console.warn('WebGuardian: loginDetector not loaded.');
+  return { penaltyScore: 0, flaggedForms: [] };
 }
 
 function runTrackerScan(){
-console.log('Running placeholder tracker scan...');
-// Placeholder logic
+  console.log('Running placeholder tracker scan...');
+  // Placeholder logic
+  return { penaltyScore: 0 };
 }
 
-function initScans(){
-runPhishingScan();
-runLoginScan();
-runTrackerScan();
+async function initScans(){
+  try {
+    const phishingResult = await runPhishingScan();
+    const loginResult = runLoginScan();
+    const trackerResult = runTrackerScan();
+
+    const totalContentPenalty = phishingResult.penaltyScore + loginResult.penaltyScore + (trackerResult.penaltyScore || 0);
+
+    if (totalContentPenalty !== lastReportedScore) {
+      lastReportedScore = totalContentPenalty;
+      reportToBackground('contentScanResult', {
+        phishingScore: phishingResult.penaltyScore,
+        loginPenalty: loginResult.penaltyScore,
+        matchedKeywords: phishingResult.matchedKeywords,
+        flaggedForms: loginResult.flaggedForms
+      });
+    }
+  } catch (error) {
+    console.error('WebGuardian: Error running content scans:', error);
+  }
 }
 
 // Set up communication pipeline with background.js

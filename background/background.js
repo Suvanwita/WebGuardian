@@ -149,3 +149,80 @@ chrome.webRequest.onHeadersReceived.addListener(
 chrome.tabs.onRemoved.addListener((tabId) => {
   chrome.storage.local.remove(`tab_${tabId}`);
 });
+
+// Listen for message from content script containing DOM scan results
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'contentScanResult') {
+    const tabId = sender.tab?.id;
+    if (!tabId) return;
+
+    const { phishingScore, loginPenalty, matchedKeywords, flaggedForms } = request.data;
+    const storageKey = `tab_${tabId}`;
+
+    chrome.storage.local.get([storageKey], (result) => {
+      const currentData = result[storageKey] || {
+        url: sender.tab.url || '',
+        riskScore: 0,
+        anomalies: [],
+        updatedAt: Date.now()
+      };
+
+      const newAnomalies = [...currentData.anomalies];
+
+      // Update anomalies based on scans
+      if (phishingScore > 0) {
+        if (!newAnomalies.includes('SUSPICIOUS_KEYWORDS')) {
+          newAnomalies.push('SUSPICIOUS_KEYWORDS');
+        }
+      } else {
+        const index = newAnomalies.indexOf('SUSPICIOUS_KEYWORDS');
+        if (index > -1) {
+          newAnomalies.splice(index, 1);
+        }
+      }
+
+      if (loginPenalty > 0) {
+        if (!newAnomalies.includes('FAKE_LOGIN_FORM')) {
+          newAnomalies.push('FAKE_LOGIN_FORM');
+        }
+      } else {
+        const index = newAnomalies.indexOf('FAKE_LOGIN_FORM');
+        if (index > -1) {
+          newAnomalies.splice(index, 1);
+        }
+      }
+
+      // Track the previous content risk contribution to update the overall score properly without double-counting
+      const prevContentRisk = currentData.contentRiskScore || 0;
+      const newContentRisk = phishingScore + loginPenalty;
+
+      let newRiskScore = currentData.riskScore - prevContentRisk + newContentRisk;
+      newRiskScore = Math.max(0, Math.min(newRiskScore, 100));
+
+      const updatedData = {
+        ...currentData,
+        riskScore: newRiskScore,
+        contentRiskScore: newContentRisk,
+        anomalies: newAnomalies,
+        updatedAt: Date.now()
+      };
+
+      chrome.storage.local.set({ [storageKey]: updatedData }, () => {
+        console.log(`WebGuardian: Tab ${tabId} content scan analysis updated.`, updatedData);
+
+        // Warn the user immediately if risk score exceeds 80
+        if (newRiskScore > 80) {
+          chrome.notifications.create(`risk_warning_${tabId}`, {
+            type: 'basic',
+            iconUrl: '/popup/logo.png',
+            title: '⚠️ High Security Risk Warning',
+            message: `The website you visited (${new URL(updatedData.url).hostname}) has an extremely high risk score of ${newRiskScore}%. Proceed with extreme caution!`,
+            priority: 2
+          });
+        }
+        sendResponse({ success: true, updatedData });
+      });
+    });
+    return true; // Keep message channel open for async response
+  }
+});
