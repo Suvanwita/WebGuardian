@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGuardian Security Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <header>
+      <div class="logo-section">
+        <div class="logo-badge">W</div>
+        <div class="header-text">
+          <h1>WebGuardian Dashboard</h1>
+          <p>Real-time browser security metrics and logs</p>
+        </div>
+      </div>
+      <button id="btn-clear" class="btn-clear">Clear Local Storage</button>
+    </header>
+
+    <main>
+      <!-- Today's Report Grid Section -->
+      <section class="today-section">
+        <h2 class="section-title">Today's Report</h2>
+        <div class="report-grid">
+          <!-- Total Visited Websites -->
+          <div class="report-card">
+            <div class="card-info">
+              <span class="card-label">Active Monitored Pages</span>
+              <span id="visited-websites-val" class="card-val">0</span>
+            </div>
+            <div class="card-icon websites">🌐</div>
+          </div>
+
+          <!-- Total Trackers Blocked -->
+          <div class="report-card">
+            <div class="card-info">
+              <span class="card-label">Blocked Trackers</span>
+              <span id="trackers-blocked-val" class="card-val">0</span>
+            </div>
+            <div class="card-icon trackers">🛡️</div>
+          </div>
+
+          <!-- Overall Security Score -->
+          <div class="report-card">
+            <div class="card-info">
+              <span class="card-label">Overall Security Score</span>
+              <span id="security-score-val" class="card-val">100%</span>
+            </div>
+            <div id="security-score-icon" class="card-icon score">🔒</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Grid Layout (Historical logs & Active tab indicators) -->
+      <div class="dashboard-grid" style="margin-top: 28px;">
+        <!-- Left: Historical Daily Logs -->
+        <div class="table-card">
+          <h2 class="section-title">Historical Trends</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Visited Websites</th>
+                  <th>Trackers Blocked</th>
+                  <th>Security Score</th>
+                </tr>
+              </thead>
+              <tbody id="historical-body">
+                <!-- Populated dynamically by dashboard.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right: Monitored Active Tabs -->
+        <div class="list-card">
+          <h2 class="section-title">Monitored Tabs</h2>
+          <div id="active-tabs-list" class="active-tabs-list">
+            <!-- Populated dynamically by dashboard.js -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="dashboard.js"></script>
+</body>
+</html>

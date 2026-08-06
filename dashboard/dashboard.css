@@ -1,0 +1,316 @@
+:root {
+  --bg-color: #080c14;
+  --card-bg: #111827;
+  --card-border: #1f2937;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --accent-blue: #38bdf8;
+  --accent-hover: #0ea5e9;
+  
+  --color-green: #10b981;
+  --color-yellow: #f59e0b;
+  --color-red: #ef4444;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  min-height: 100vh;
+}
+
+.dashboard-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 20px;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-badge {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--accent-blue), #818cf8);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: var(--bg-color);
+}
+
+.header-text h1 {
+  font-size: 1.5rem;
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.header-text p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 4px 0 0 0;
+}
+
+.btn-clear {
+  background-color: transparent;
+  color: var(--color-red);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-clear:hover {
+  background-color: rgba(239, 68, 68, 0.08);
+  border-color: var(--color-red);
+}
+
+.btn-clear:active {
+  transform: scale(0.97);
+}
+
+/* Today's Report Grid Layout using CSS Grid */
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.01em;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.report-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.report-card:hover {
+  border-color: rgba(56, 189, 248, 0.2);
+  transform: translateY(-2px);
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.card-val {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.card-icon.websites {
+  background-color: rgba(56, 189, 248, 0.1);
+  color: var(--accent-blue);
+}
+
+.card-icon.trackers {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--color-yellow);
+}
+
+.card-icon.score {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--color-green);
+}
+
+.card-icon.score.warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--color-yellow);
+}
+
+.card-icon.score.danger {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-red);
+}
+
+/* Dashboard Content Grid Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.table-card, .list-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+th {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 12px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+td {
+  font-size: 0.9rem;
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.badge-score {
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.badge-score.green {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--color-green);
+}
+
+.badge-score.yellow {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--color-yellow);
+}
+
+.badge-score.red {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-red);
+}
+
+/* Active Tabs List */
+.active-tabs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.active-tab-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  padding-bottom: 12px;
+}
+
+.active-tab-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.tab-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+  margin-right: 12px;
+}
+
+.tab-domain {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-url {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-score {
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.tab-score.green {
+  color: var(--color-green);
+}
+
+.tab-score.yellow {
+  color: var(--color-yellow);
+}
+
+.tab-score.red {
+  color: var(--color-red);
+}
+
+.no-data {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 16px;
+}
