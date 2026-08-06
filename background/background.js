@@ -91,6 +91,8 @@ chrome.webNavigation.onCommitted.addListener((details) => {
 
       chrome.storage.local.set({
         [`tab_${tabId}`]: tabData
+      }, () => {
+        updateDailyStats(tabId, tabData);
       });
 
       console.log(`WebGuardian: Tab ${tabId} URL risk analysis complete.`, tabData);
@@ -142,6 +144,7 @@ chrome.webRequest.onHeadersReceived.addListener(
         };
 
         chrome.storage.local.set({ [storageKey]: updatedData }, () => {
+          updateDailyStats(details.tabId, updatedData);
           console.log(`WebGuardian: Tab ${details.tabId} headers analysis complete.`, updatedData);
           
           // Warn the user immediately if risk score exceeds 80
@@ -167,6 +170,11 @@ chrome.webRequest.onHeadersReceived.addListener(
 // Clean up stored risk state when tab is closed
 chrome.tabs.onRemoved.addListener((tabId) => {
   chrome.storage.local.remove(`tab_${tabId}`);
+  chrome.storage.local.get(['tabStatsHistory'], (result) => {
+    const tabStatsHistory = result.tabStatsHistory || {};
+    delete tabStatsHistory[tabId];
+    chrome.storage.local.set({ tabStatsHistory });
+  });
 });
 
 // Listen for message from content script containing DOM scan results
@@ -249,6 +257,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       };
 
       chrome.storage.local.set({ [storageKey]: updatedData }, () => {
+        updateDailyStats(tabId, updatedData);
         console.log(`WebGuardian: Tab ${tabId} content scan analysis updated.`, updatedData);
 
         // Warn the user immediately if risk score exceeds 80
@@ -267,3 +276,59 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep message channel open for async response
   }
 });
+
+function updateDailyStats(tabId, tabData) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  
+  chrome.storage.local.get(['dailyStats', 'tabStatsHistory'], (result) => {
+    let dailyStats = result.dailyStats || [];
+    let tabStatsHistory = result.tabStatsHistory || {};
+    
+    const lastLogged = tabStatsHistory[tabId] || { url: '', trackersCount: 0, lastRiskScore: 0, hasRiskLogged: false };
+    
+    let todayRecord = dailyStats.find(item => item.date === todayStr);
+    if (!todayRecord) {
+      todayRecord = { date: todayStr, visitedWebsites: 0, trackersBlocked: 0, securityScore: 100, totalRiskScoreSum: 0, scoreCount: 0 };
+      dailyStats.push(todayRecord);
+    }
+    
+    // 1. Visited websites count
+    if (tabData.url && tabData.url !== lastLogged.url) {
+      todayRecord.visitedWebsites += 1;
+      lastLogged.url = tabData.url;
+    }
+    
+    // 2. Trackers blocked
+    const currentTrackerCount = tabData.detectedTrackers ? tabData.detectedTrackers.length : 0;
+    const newTrackers = Math.max(0, currentTrackerCount - lastLogged.trackersCount);
+    if (newTrackers > 0) {
+      todayRecord.trackersBlocked += newTrackers;
+      lastLogged.trackersCount = currentTrackerCount;
+    }
+    
+    // 3. Security score
+    const newRisk = tabData.riskScore || 0;
+    const oldRisk = lastLogged.lastRiskScore;
+    
+    if (lastLogged.hasRiskLogged) {
+      todayRecord.totalRiskScoreSum = todayRecord.totalRiskScoreSum - oldRisk + newRisk;
+    } else {
+      todayRecord.totalRiskScoreSum += newRisk;
+      todayRecord.scoreCount += 1;
+      lastLogged.hasRiskLogged = true;
+    }
+    lastLogged.lastRiskScore = newRisk;
+    
+    const avgRisk = todayRecord.scoreCount > 0 ? (todayRecord.totalRiskScoreSum / todayRecord.scoreCount) : 0;
+    todayRecord.securityScore = Math.max(0, Math.round(100 - avgRisk));
+    
+    tabStatsHistory[tabId] = lastLogged;
+    
+    // Keep only last 30 days of daily stats
+    if (dailyStats.length > 30) {
+      dailyStats = dailyStats.slice(-30);
+    }
+    
+    chrome.storage.local.set({ dailyStats, tabStatsHistory });
+  });
+}

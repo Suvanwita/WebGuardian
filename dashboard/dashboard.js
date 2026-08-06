@@ -8,29 +8,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const activeTabsList = document.getElementById('active-tabs-list');
   const btnClear = document.getElementById('btn-clear');
 
-  const MOCK_HISTORICAL_STATS = [
-    { date: 'Yesterday', visitedWebsites: 28, trackersBlocked: 142, securityScore: 94 },
-    { date: '2 days ago', visitedWebsites: 35, trackersBlocked: 198, securityScore: 89 },
-    { date: '3 days ago', visitedWebsites: 19, trackersBlocked: 87, securityScore: 97 },
-    { date: '4 days ago', visitedWebsites: 42, trackersBlocked: 215, securityScore: 92 },
-    { date: '5 days ago', visitedWebsites: 31, trackersBlocked: 120, securityScore: 95 },
-    { date: '6 days ago', visitedWebsites: 25, trackersBlocked: 94, securityScore: 96 }
-  ];
+  function formatDate(dateStr) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (dateStr === todayStr) return 'Today';
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    if (dateStr === yesterdayStr) return 'Yesterday';
 
-  // Initialize and Seed mock stats if not present
-  chrome.storage.local.get(['historicalStats'], (result) => {
-    if (!result.historicalStats) {
-      chrome.storage.local.set({ historicalStats: MOCK_HISTORICAL_STATS }, () => {
-        loadDashboardData();
-      });
-    } else {
-      loadDashboardData();
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch (e) {
+      return dateStr;
     }
-  });
+  }
 
   function loadDashboardData() {
     chrome.storage.local.get(null, (result) => {
-      const historicalStats = result.historicalStats || [];
+      const dailyStats = result.dailyStats || [];
       const activeTabs = [];
 
       // Extract all currently monitored active tabs (keys matching `tab_*`)
@@ -43,45 +41,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      // 1. Compute Today's Stats from active tabs
-      const todayVisitedCount = activeTabs.length;
-      
-      let todayTrackersBlocked = 0;
-      activeTabs.forEach(tab => {
-        if (tab.detectedTrackers && Array.isArray(tab.detectedTrackers)) {
-          todayTrackersBlocked += tab.detectedTrackers.length;
-        }
-      });
-
-      // Today's Security Score = 100 - average(activeTabRiskScores)
-      let todaySecurityScore = 100;
-      if (activeTabs.length > 0) {
-        const totalRisk = activeTabs.reduce((sum, tab) => sum + (tab.riskScore || 0), 0);
-        todaySecurityScore = Math.max(0, Math.round(100 - (totalRisk / activeTabs.length)));
-      } else {
-        // Fallback to high score if no active pages have been navigated since start
-        todaySecurityScore = 100;
-      }
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayRecord = dailyStats.find(item => item.date === todayStr) || {
+        visitedWebsites: 0,
+        trackersBlocked: 0,
+        securityScore: 100
+      };
 
       // Render Today's Report
-      visitedWebsitesVal.textContent = todayVisitedCount;
-      trackersBlockedVal.textContent = todayTrackersBlocked;
-      securityScoreVal.textContent = `${todaySecurityScore}%`;
+      visitedWebsitesVal.textContent = todayRecord.visitedWebsites;
+      trackersBlockedVal.textContent = todayRecord.trackersBlocked;
+      securityScoreVal.textContent = `${todayRecord.securityScore}%`;
 
       // Update Security Score Card Icon style based on level
       securityScoreIcon.className = 'card-icon score';
-      if (todaySecurityScore < 50) {
+      if (todayRecord.securityScore < 50) {
         securityScoreIcon.classList.add('danger');
-      } else if (todaySecurityScore < 80) {
+      } else if (todayRecord.securityScore < 80) {
         securityScoreIcon.classList.add('warning');
       }
 
-      // 2. Render Historical Logs table
+      // Render Historical Logs table (sort most recent first)
       historicalBody.innerHTML = '';
-      if (historicalStats.length === 0) {
-        historicalBody.innerHTML = '<tr><td colspan="4" class="no-data">No historical data available.</td></tr>';
+      if (dailyStats.length === 0) {
+        historicalBody.innerHTML = '<tr><td colspan="4" class="no-data">No activity logged yet. Visit some websites to generate reports.</td></tr>';
       } else {
-        historicalStats.forEach(row => {
+        const sortedStats = [...dailyStats].sort((a, b) => b.date.localeCompare(a.date));
+        
+        sortedStats.forEach(row => {
           const tr = document.createElement('tr');
           
           let scoreClass = 'green';
@@ -92,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           tr.innerHTML = `
-            <td><strong>${row.date}</strong></td>
+            <td><strong>${formatDate(row.date)}</strong></td>
             <td>${row.visitedWebsites}</td>
             <td>${row.trackersBlocked}</td>
             <td><span class="badge-score ${scoreClass}">${row.securityScore}%</span></td>
@@ -101,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // 3. Render Active Inspected Tabs list
+      // Render Active Inspected Tabs list
       activeTabsList.innerHTML = '';
       if (activeTabs.length === 0) {
         activeTabsList.innerHTML = '<div class="no-data">No active tabs monitored. Visit a website to see live safety indicators.</div>';
@@ -138,11 +125,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Load initial data
+  loadDashboardData();
+
+  // Listen for changes in local storage to dynamically update stats
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local') {
+      loadDashboardData();
+    }
+  });
+
   // Clear local storage logic
   btnClear.addEventListener('click', () => {
     if (confirm('Are you sure you want to clear all WebGuardian statistics and temporary storage?')) {
       chrome.storage.local.clear(() => {
-        // Refresh the page to reflect empty states
         loadDashboardData();
       });
     }
