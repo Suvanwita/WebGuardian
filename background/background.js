@@ -12,6 +12,22 @@ const MOCK_TRUSTED_DOMAINS = [
   'netflix.com'
 ];
 
+function getReasons(data) {
+  const reasons = [];
+  const anomalies = data.anomalies || [];
+  if (anomalies.includes('IP_ADDRESS_HOST')) reasons.push('IP Address Host');
+  if (anomalies.includes('HOMOGRAPH_ATTACK')) reasons.push('Homograph Attack');
+  if (anomalies.includes('EXCESSIVELY_LONG')) reasons.push('Excessively Long URL');
+  if (anomalies.includes('EXCESSIVE_SUBDOMAINS')) reasons.push('Excessive Subdomains');
+  if (anomalies.includes('MISSING_CSP')) reasons.push('Missing CSP');
+  if (anomalies.includes('MISSING_HSTS')) reasons.push('Missing HSTS');
+  if (anomalies.includes('MISSING_XFRAME')) reasons.push('Missing X-Frame-Options');
+  if (anomalies.includes('SUSPICIOUS_KEYWORDS')) reasons.push('Suspicious Keywords Match');
+  if (anomalies.includes('FAKE_LOGIN_FORM')) reasons.push('Fake Login Detected');
+  if (anomalies.includes('TRACKERS_DETECTED')) reasons.push('Trackers Detected');
+  return reasons;
+}
+
 // Listen for navigation commitments (main frame only)
 chrome.webNavigation.onCommitted.addListener((details) => {
   if (details.frameId === 0) {
@@ -29,6 +45,7 @@ chrome.webNavigation.onCommitted.addListener((details) => {
           url,
           riskScore: 0,
           anomalies: [],
+          reasons: [],
           updatedAt: Date.now()
         }
       });
@@ -68,6 +85,7 @@ chrome.webNavigation.onCommitted.addListener((details) => {
         url,
         riskScore: Math.min(riskScore, 100), // Cap the risk score at 100
         anomalies,
+        reasons: getReasons({ anomalies }),
         updatedAt: Date.now()
       };
 
@@ -119,6 +137,7 @@ chrome.webRequest.onHeadersReceived.addListener(
           ...currentData,
           riskScore: newRiskScore,
           anomalies: newAnomalies,
+          reasons: getReasons({ anomalies: newAnomalies }),
           updatedAt: Date.now()
         };
 
@@ -156,7 +175,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const tabId = sender.tab?.id;
     if (!tabId) return;
 
-    const { phishingScore, loginPenalty, trackerScore, matchedKeywords, flaggedForms, detectedTrackers } = request.data;
+    const phishingScan = request.phishingScan || {};
+    const loginScan = request.loginScan || {};
+    const trackerScan = request.trackerScan || {};
+
+    const phishingScore = phishingScan.score || 0;
+    const loginPenalty = loginScan.score || 0;
+    const trackerScore = trackerScan.score || 0;
+    const detectedTrackers = trackerScan.detectedTrackers || [];
+
     const storageKey = `tab_${tabId}`;
 
     chrome.storage.local.get([storageKey], (result) => {
@@ -216,6 +243,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         riskScore: newRiskScore,
         contentRiskScore: newContentRisk,
         anomalies: newAnomalies,
+        reasons: getReasons({ anomalies: newAnomalies }),
         detectedTrackers: detectedTrackers || [],
         updatedAt: Date.now()
       };

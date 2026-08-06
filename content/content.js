@@ -37,13 +37,26 @@ async function initScans(){
 
     if (totalContentPenalty !== lastReportedScore) {
       lastReportedScore = totalContentPenalty;
-      reportToBackground('contentScanResult', {
-        phishingScore: phishingResult.penaltyScore,
-        loginPenalty: loginResult.penaltyScore,
-        trackerScore: trackerResult.penaltyScore,
-        matchedKeywords: phishingResult.matchedKeywords,
-        flaggedForms: loginResult.flaggedForms,
-        detectedTrackers: trackerResult.detectedTrackers
+      chrome.runtime.sendMessage({
+        action: 'contentScanResult',
+        phishingScan: {
+          score: phishingResult.penaltyScore,
+          matchedKeywords: phishingResult.matchedKeywords
+        },
+        loginScan: {
+          score: loginResult.penaltyScore,
+          flaggedForms: loginResult.flaggedForms
+        },
+        trackerScan: {
+          score: trackerResult.penaltyScore,
+          detectedTrackers: trackerResult.detectedTrackers
+        }
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.warn('WebGuardian background communication failed:', chrome.runtime.lastError.message);
+        } else {
+          console.log('WebGuardian background response:', response);
+        }
       });
     }
   } catch (error) {
