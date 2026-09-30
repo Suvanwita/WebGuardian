@@ -149,11 +149,13 @@ chrome.webRequest.onHeadersReceived.addListener(
           
           // Warn the user immediately if risk score exceeds 80
           if (newRiskScore > 80) {
+            let host = 'Website';
+            try { host = new URL(details.url).hostname; } catch (e) {}
             chrome.notifications.create(`risk_warning_${details.tabId}`, {
               type: 'basic',
               iconUrl: '/popup/logo.png',
               title: '⚠️ High Security Risk Warning',
-              message: `The website you visited (${new URL(details.url).hostname}) has an extremely high risk score of ${newRiskScore}%. Proceed with extreme caution!`,
+              message: `The website you visited (${host}) has an extremely high risk score of ${newRiskScore}%. Proceed with extreme caution!`,
               priority: 2
             });
           }
@@ -262,11 +264,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         // Warn the user immediately if risk score exceeds 80
         if (newRiskScore > 80) {
+          let host = 'Website';
+          try { host = new URL(updatedData.url).hostname; } catch (e) {}
           chrome.notifications.create(`risk_warning_${tabId}`, {
             type: 'basic',
             iconUrl: '/popup/logo.png',
             title: '⚠️ High Security Risk Warning',
-            message: `The website you visited (${new URL(updatedData.url).hostname}) has an extremely high risk score of ${newRiskScore}%. Proceed with extreme caution!`,
+            message: `The website you visited (${host}) has an extremely high risk score of ${newRiskScore}%. Proceed with extreme caution!`,
             priority: 2
           });
         }

@@ -44,17 +44,11 @@ header {
   gap: 12px;
 }
 
-.logo-badge {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--accent-blue), #818cf8);
+.header-logo-img {
+  width: 42px;
+  height: 42px;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 1.3rem;
-  color: var(--bg-color);
+  object-fit: contain;
 }
 
 .header-text h1 {
@@ -194,6 +188,7 @@ header {
   border-radius: 14px;
   padding: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  min-width: 0;
 }
 
 .table-wrapper {
@@ -201,9 +196,9 @@ header {
 }
 
 table {
-  width: 100%;
   border-collapse: collapse;
   text-align: left;
+  width: 100%;
 }
 
 th {
@@ -251,6 +246,30 @@ tr:last-child td {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding-right: 4px;
+}
+
+.active-tabs-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.active-tabs-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.active-tabs-list::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 3px;
+}
+
+.active-tabs-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
 .active-tab-item {
@@ -259,6 +278,10 @@ tr:last-child td {
   justify-content: space-between;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   padding-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .active-tab-item:last-child {
@@ -272,6 +295,8 @@ tr:last-child td {
   gap: 4px;
   overflow: hidden;
   margin-right: 12px;
+  min-width: 0;
+  flex: 1;
 }
 
 .tab-domain {
@@ -280,6 +305,7 @@ tr:last-child td {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .tab-url {
@@ -288,6 +314,7 @@ tr:last-child td {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .tab-score {
